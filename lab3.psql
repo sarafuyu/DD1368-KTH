@@ -1,0 +1,384 @@
+-- Lab3
+
+-- question 1
+
+select books.title, string_agg(genre.genre, ', ')genre 
+from genre
+left join books on books.bookid = genre.bookid
+group by books.title
+order by title;
+
+-- question 2
+
+select * from (
+select books.title,
+rank() over(order by count(borrowing.dob) desc)rank
+from genre
+left join books on books.bookid = genre.bookid
+left join resources on resources.bookID = books.bookID
+left join borrowing on borrowing.physicalid = resources.physicalid
+where genre.genre = 'RomCom'
+group by books.title) as t
+where t.rank < 6;
+
+-- question 3
+
+select f.week, f.borrowed, l.returned, l.late
+from
+-- correct output for the two first columns
+(select date_part('week', dob)week, count(date_part('week', dob))borrowed
+from borrowing
+where date_part('week', dob) < 31
+group by week
+order by week) as f
+left join
+-- correct output for the two last columns
+(select
+date_part('week', dor)weekr,
+count(dor)returned,
+count(dor) filter (where dor > doe)late
+from borrowing
+group by weekr
+order by weekr) as l
+on f.week=l.weekr;
+
+-- question 4
+
+select books.title,
+case
+    when prequelid is not null then true
+    when prequelid is null then false
+end prequel,
+borrowing.dob as date
+from books
+left join prequels on books.bookid = prequels.bookid
+left join resources on resources.bookID = books.bookID
+left join borrowing on borrowing.physicalid = resources.physicalid
+Where date_part('month', dob) = 2 and dob is not null
+order by title;
+
+-- question 5
+
+with recursive series as (
+-- base case: last book in series
+select title, books.bookid, prequelid
+from books
+join prequels on prequels.bookid = books.bookid
+where books.bookid = 8713
+-- adds the recursive part
+UNION
+-- recursion: where the rest of the books are added
+select books.title, books.bookid, prequels.prequelid
+from series, books
+left join prequels on prequels.bookid = books.bookid 
+or prequels.bookid is null
+where series.prequelid = books.bookid
+)
+select * from series;
+
+-- p+ 
+
+with recursive series as (
+-- base case: last book in series
+select title, books.bookid, prequelid, pages
+from books
+join prequels on prequels.bookid = books.bookid
+where books.bookid = 30553
+-- adds the recursive part
+UNION
+-- recursion: where the rest of the books are added
+select books.title, books.bookid, prequels.prequelid, books.pages
+from series, books
+left join prequels on prequels.bookid = books.bookid 
+or prequels.bookid is null
+where series.prequelid = books.bookid
+)
+select string_agg(series.title, ' -> ')series, sum(series.pages) from series;
+
+
+with recursive series as (
+-- base case: first book in series
+select title, books.bookid, prequelid, pages
+from books
+left join prequels on prequels.bookid = books.bookid
+or prequels.bookid is null
+where books.bookid = 7458
+-- adds the recursive part
+UNION
+-- recursion: where the rest of the books are added
+select books.title, books.bookid, prequels.prequelid, books.pages
+from series, prequels
+left join books on prequels.bookid = books.bookid
+where prequels.prequelid = series.bookid
+)
+select string_agg(series.title, ' -> ')series, sum(series.pages) from series;
+
+
+
+select title, books.bookid, prequelid, pages
+from books
+left join prequels on prequels.bookid = books.bookid and prequels.prequelid is null
+left join prequels on 
+
+select *
+from books
+left join prequels on prequels.bookid = books.bookid and prequels.prequelid is null
+left join prequels on 
+
+where books.bookid=prequels.prequelid is not null
+
+with recursive series as (
+    select title,pages, 1
+      from books
+     where title = 'Harry Potter and the Philosphers Stone'
+    union all
+    select b.title, b.pages, seq+1
+      from books b
+      join bookseries bs on b.precededby = bs.title 
+   ) 
+select string_agg( title, ' -> '  order by seq) as book_series
+     , max(seq) number_of_books
+     , sum(pages) total_pages 
+from bookseries;
+
+
+WITH RECURSIVE t(n) AS (
+    VALUES (1)
+  UNION ALL
+    SELECT n+1 FROM t WHERE n < 100
+)
+SELECT * FROM t;
+
+
+
+
+with recursive series as (
+-- base case: first books in all series
+select array[books.title::varchar] as titles, books.bookid, prequels.prequelid, books.pages, array[books.bookid::int] as path
+
+from (
+select title, books.bookid, prequelid, pages
+from books
+left join prequels on prequels.bookid = books.bookid
+) as check_series
+
+left join prequels on prequels.bookid = check_series.prequelid
+join books on books.bookid = check_series.prequelid
+where prequels.prequelid IS NULL
+
+UNION 
+
+-- recursion: where the rest of the books are added
+select series.titles || books.title, books.bookid, prequels.prequelid, series.pages + books.pages,
+series.path || books.bookid::int
+from  series, prequels
+left join books on books.bookid = prequels.bookid
+where prequels.prequelid = series.bookid
+)
+
+select series.titles, series.pages --, path
+from series 
+group by series.titles, series.pages; --, series.path;
+
+
+--version med två arrays till text och add pages
+
+with recursive series as (
+-- base case: first books in all series
+select array[books.title::varchar] as titles, books.bookid, prequels.prequelid, books.pages, array[books.bookid::int] as path 
+from (
+select title, books.bookid, prequelid, pages
+from books
+left join prequels on prequels.bookid = books.bookid
+) as check_series
+left join prequels on prequels.bookid = check_series.prequelid
+join books on books.bookid = check_series.prequelid
+where prequels.prequelid IS NULL
+ 
+UNION
+ 
+-- recursion: where the rest of the books are added
+select series.titles || books.title, books.bookid, prequels.prequelid, series.pages + books.pages,
+series.path || books.bookid::int
+from  series, prequels
+left join books on books.bookid = prequels.bookid
+where prequels.prequelid = series.bookid
+)
+ 
+select series.titles, ('->')series, series.pages
+from series
+group by series.titles, series.pages;
+
+
+
+separating as (
+select distinct books.title, books.pages, i
+from series, unnest(series.path) WITH ORDINALITY as a(bookid) new
+cross join lateral( select * from unnest(series.path)
+with ordinality as u(bookid, i)) new
+join books on books.bookid = new.bookid)
+
+
+
+with recursive series as (
+-- base case: first books in all series
+select books.title, books.bookid, prequels.prequelid, books.pages, array[books.bookid::int] as path
+ 
+from (
+select title, books.bookid, prequelid, pages
+from books
+left join prequels on prequels.bookid = books.bookid
+) as check_series
+ 
+left join prequels on prequels.bookid = check_series.prequelid
+join books on books.bookid = check_series.prequelid
+where prequels.prequelid IS NULL
+ 
+UNION ALL
+ 
+-- recursion: where the rest of the books are added
+select books.title, books.bookid, prequels.prequelid, books.pages,
+series.path || books.bookid::int
+from  series, prequels
+left join books on books.bookid = prequels.bookid
+where prequels.prequelid = series.bookid
+)
+
+
+
+
+
+
+
+with t1 as (
+    with recursive series as (
+    -- base case: first book in series
+    select title, books.bookid, prequelid
+    from books
+    left join prequels on prequels.bookid = books.bookid
+    or prequels.bookid is null
+    where books.bookid = 76418
+    -- adds the recursive part
+    UNION
+    -- recursion: where the rest of the books are added
+    select books.title, books.bookid, prequels.prequelid
+    from series, prequels
+    left join books on prequels.bookid = books.bookid
+    where prequels.prequelid = series.bookid
+    )
+    select * from series
+)
+select t1;
+
+
+
+
+
+with recursive series as (
+-- base case: first books in all series
+select distinct array[books.title::varchar] as titles, books.bookid, prequels.prequelid, books.pages, array[books.bookid::int] as path
+from (
+select title, books.bookid, prequelid, pages
+from books
+left join prequels on prequels.bookid = books.bookid
+) as check_series
+left join prequels on prequels.bookid = check_series.prequelid
+join books on books.bookid = check_series.prequelid
+where prequels.prequelid IS NULL
+ 
+UNION
+ 
+-- recursion: where the rest of the books are added
+select series.titles || books.title, books.bookid, prequels.prequelid, series.pages + books.pages,
+series.path || books.bookid::int
+from  series, prequels
+left join books on books.bookid = prequels.bookid
+where prequels.prequelid = series.bookid
+),
+clean_up as (
+select distinct on (series.titles[1]) series.titles, series.path, pages
+from series, prequels
+where series.path[array_length(path, 1)] = prequels.bookid
+and not series.path[array_length(path, 1) ] = prequels.prequelid
+)
+ 
+select array_to_string(clean_up.titles, ' -> ')series, clean_up.pages
+from clean_up
+
+
+
+
+
+
+
+
+
+with recursive series as (
+-- base case: first books in all series
+select distinct array[books.title::varchar] as titles, books.bookid, prequels.prequelid, books.pages, array[books.bookid::int] as path
+from (
+select title, books.bookid, prequelid, pages
+from books
+left join prequels on prequels.bookid = books.bookid
+) as check_series
+left join prequels on prequels.bookid = check_series.prequelid
+left join books on books.bookid = check_series.prequelid
+where prequels.prequelid IS NULL
+ 
+UNION
+ 
+-- recursion: where the rest of the books are added
+select series.titles || books.title, books.bookid, prequels.prequelid, series.pages + books.pages,
+series.path || books.bookid::int
+from  series, prequels
+ join books on books.bookid = prequels.bookid
+where prequels.prequelid = series.bookid
+),
+clean_up as (
+select distinct on (series.path[0]) series.path, series.titles, pages
+from series, prequels
+where not series.path[array_length(path, 1)] = prequels.prequelid
+)
+ 
+select distinct on (clean_up.titles[1]) array_to_string(clean_up.titles, ' -> ')series, clean_up.pages
+from clean_up;
+
+
+
+
+
+
+
+
+-- inside of the recursive
+with recursive series as (
+-- base case: first books in all series
+select distinct array[books.title::varchar] as titles, books.bookid, prequels.prequelid, books.pages, array[books.bookid::int] as path
+from (
+select title, books.bookid, prequelid, pages
+from books
+left join prequels on prequels.bookid = books.bookid
+) as check_series
+left join prequels on prequels.bookid = check_series.prequelid
+left join books on books.bookid = check_series.prequelid
+where prequels.prequelid IS NULL
+ 
+UNION
+ 
+-- recursion: where the rest of the books are added
+select series.titles || books.title, books.bookid, prequels.prequelid, series.pages + books.pages,
+series.path || books.bookid::int
+from  series, prequels
+ join books on books.bookid = prequels.bookid
+where prequels.prequelid = series.bookid
+
+union
+
+select distinct on (series.titles[1]) series.titles, series.bookid, prequels.prequelid, series.pages, series.path
+from series, prequels
+join series on series.bookid = prequels.bookid
+where not series.path[array_length(path, 1)] = prequels.prequelid
+)
+ 
+select  array_to_string(series.titles, ' -> ')series, series.pages
+from series;
