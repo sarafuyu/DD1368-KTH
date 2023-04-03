@@ -1,2 +1,2 @@
 # DD1368-KTH
-Introduction to Databases for Computer Science Students 2022.
+Assignments finished in KTH's course Introduction to Databases for Computer Science Students 2022.
