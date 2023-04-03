@@ -272,6 +272,7 @@ VALUES
 ;
 
 -- Part 2: Querying the database
+
 -- question 1
 select full_name from users; 
 
@@ -307,19 +308,4 @@ select n from t group by n
 having n = 2 or n = 3 or n = 5 or n = 7 or mod(n, 2) > 0 
 and mod(n, 3) > 0 and mod(n, 5) > 0 and mod(n, 7) > 0
 )
-select sum(p) from prime_sum;
-
--- old version
-with prime_sum(p) as (
-with recursive n(n) as (
-select 2 n -- 2 will be the anchor for out CTE
-union all -- combines the results with recursive component n+1 
-select n+1 from n where n<100 -- results in a list of primes from 2 to 97
-)
-select sum(a.n) from n a -- runs the query (recursive method)
-left join n b -- 
-on b.n <= sqrt(a.n) -- candidate divisors <= candidate primes
-group by a.n -- groups potential primes with its candidate divisor into a single group
-having a.n=2 or a.n=3 or MIN(a.n % b.n) > 0) -- drops every group with one or more candidate divisors dividing the candidate prime evenly
---select sum(n) from a
 select sum(p) from prime_sum;
